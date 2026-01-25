@@ -4,6 +4,7 @@ title = "Hey, I'm Hellscaped"
 theme = 'terminal'
 pagination.pagerSize = 5
 enableGitInfo = true
+
 # Required for Chroma and the custom syntax highlighting.
 [markup.highlight]
   noClasses = false
@@ -21,10 +22,10 @@ enableGitInfo = true
   showLanguageSelector = false
 
   # set theme to full screen width
-  fullWidthTheme = false
+  fullWidthTheme = true
 
   # center theme with default width
-  centerTheme = false
+  centerTheme = true
 
   # if your resource directory contains an image called `cover.(jpg|png|webp)`,
   # then the file will be used as a cover automatically.
