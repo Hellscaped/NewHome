@@ -43,7 +43,7 @@ enableGitInfo = true
     [languages.en.params]
       subtitle = "I do things"
       owner = "Hellscaped"
-      keywords = "home, blog"
+      keywords = "home, blog, games"
       menuMore = "Show more"
       readMore = "Read more"
       readOtherPosts = "Read other posts"
@@ -58,12 +58,13 @@ enableGitInfo = true
         logoText = "Hellscaped"
         logoHomeLink = "/"
 
-    #   [languages.en.menu]
-    #     [[languages.en.menu.main]]
-    #       identifier = "about"
-    #       name = "About"
-    #       url = "/about"
-    #     [[languages.en.menu.main]]
-    #       identifier = "showcase"
-    #       name = "Showcase"
-    #       url = "/showcase"
+      [languages.en.menu]
+        [[languages.en.menu.main]]
+          identifier = "blog"
+          name = "Blog"
+          url = "/posts"
+        [[languages.en.menu.main]]
+          identifier = "games"
+          name = "Games"
+          url = "/games"
+# 
