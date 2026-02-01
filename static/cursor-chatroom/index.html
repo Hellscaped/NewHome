@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cursor Chatroom - Multiplayer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -27,6 +25,12 @@
             flex: 1;
             position: relative;
             overflow: hidden;
+        }
+        
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
         
         #chat-panel {
@@ -92,6 +96,7 @@
             border: 1px solid #00ff00;
             font-size: 12px;
             z-index: 100;
+            max-width: 400px;
         }
         
         #info-panel div {
@@ -109,7 +114,9 @@
     </style>
 </head>
 <body>
-    <div id="game-container"></div>
+    <div id="game-container">
+        <canvas id="canvas"></canvas>
+    </div>
     <div id="chat-panel">
         <div id="messages"></div>
         <div id="input-area">
@@ -119,33 +126,43 @@
     </div>
     <div id="info-panel">
         <div><strong>Cursor Chatroom</strong></div>
-        <div id="peer-id">Peer ID: Connecting...</div>
+        <div id="peer-id">Your ID: Initializing...</div>
         <div id="peer-count">Connected: 0</div>
-        <div style="margin-top: 8px; font-size: 11px;">Share your Peer ID to connect!</div>
+        <div style="margin-top: 8px;">
+            <button id="create-offer-btn" style="padding: 5px 10px; background: #00ff00; color: #000; border: none; cursor: pointer; font-family: 'Courier New', monospace; font-weight: bold;">Create Offer</button>
+        </div>
         <div style="margin-top: 5px;">
-            <input type="text" id="connect-input" placeholder="Enter Peer ID" style="width: 150px; padding: 3px; background: #000; color: #00ff00; border: 1px solid #00ff00; font-family: 'Courier New', monospace;">
-            <button id="connect-button" style="padding: 3px 8px; background: #00ff00; color: #000; border: none; cursor: pointer; font-family: 'Courier New', monospace;">Connect</button>
+            <textarea id="connect-input" placeholder="Paste offer/answer here" style="width: 100%; height: 60px; padding: 5px; background: #000; color: #00ff00; border: 1px solid #00ff00; font-family: 'Courier New', monospace; font-size: 11px; resize: vertical;"></textarea>
+            <button id="submit-connection-btn" style="padding: 5px 10px; background: #00ff00; color: #000; border: none; cursor: pointer; font-family: 'Courier New', monospace; margin-top: 3px;">Submit</button>
+        </div>
+        <div id="connection-info" style="margin-top: 10px; display: none;">
+            <div style="font-weight: bold; color: #ffff00;"><span id="connection-type"></span>:</div>
+            <textarea id="connection-data" readonly style="width: 100%; height: 80px; padding: 5px; background: #000; color: #ffff00; border: 1px solid #ffff00; font-family: 'Courier New', monospace; font-size: 10px; resize: vertical; margin-top: 3px;"></textarea>
+            <button id="copy-btn" style="padding: 3px 8px; background: #ffff00; color: #000; border: none; cursor: pointer; font-family: 'Courier New', monospace; margin-top: 3px;">Copy</button>
         </div>
     </div>
 
     <script>
-        // Initialize PixiJS
-        const app = new PIXI.Application({
-            width: window.innerWidth,
-            height: window.innerHeight - 200,
-            backgroundColor: 0x1a1a1a,
-            antialias: true
-        });
-        document.getElementById('game-container').appendChild(app.view);
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let canvasWidth = window.innerWidth;
+        let canvasHeight = window.innerHeight - 200;
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
 
         // Handle window resize
         window.addEventListener('resize', () => {
-            app.renderer.resize(window.innerWidth, window.innerHeight - 200);
+            canvasWidth = window.innerWidth;
+            canvasHeight = window.innerHeight - 200;
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
         });
 
         // Generate random color for user
         function randomColor() {
-            const colors = [0xFF6B6B, 0x4ECDC4, 0xFFE66D, 0x95E1D3, 0xF38181, 0xAA96DA, 0xFCBAD3, 0xA8E6CF];
+            const colors = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3', '#F38181', '#AA96DA', '#FCBAD3', '#A8E6CF'];
             return colors[Math.floor(Math.random() * colors.length)];
         }
 
@@ -161,165 +178,228 @@
         // App state
         const myUsername = randomUsername();
         const myColor = randomColor();
-        let myPeerId = null;
+        const myId = 'user-' + Math.random().toString(36).substr(2, 9);
         const cursors = new Map();
-        const connections = new Map();
+        const channels = new Map();
         let mouseX = 0;
         let mouseY = 0;
+        let localConnection = null;
+        let remoteConnection = null;
+        let dataChannel = null;
 
-        // Initialize PeerJS
-        const peer = new Peer();
+        // Render loop
+        function render() {
+            // Clear canvas
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+            
+            // Draw my cursor
+            drawCursor(ctx, mouseX, mouseY, myColor, myUsername);
+            
+            // Draw other cursors
+            cursors.forEach((cursor, id) => {
+                drawCursor(ctx, cursor.x, cursor.y, cursor.color, cursor.username);
+            });
+            
+            requestAnimationFrame(render);
+        }
+        
+        // Draw a cursor
+        function drawCursor(context, x, y, color, username) {
+            // Draw cursor triangle
+            context.fillStyle = color;
+            context.strokeStyle = '#000';
+            context.lineWidth = 2;
+            
+            context.beginPath();
+            context.moveTo(x, y);
+            context.lineTo(x + 15, y + 30);
+            context.lineTo(x + 8, y + 25);
+            context.closePath();
+            context.fill();
+            context.stroke();
+            
+            // Draw username label
+            context.fillStyle = color;
+            context.font = 'bold 12px "Courier New", monospace';
+            context.shadowColor = '#000';
+            context.shadowBlur = 3;
+            context.fillText(username, x + 20, y + 15);
+            context.shadowBlur = 0;
+        }
 
-        peer.on('open', (id) => {
-            myPeerId = id;
-            document.getElementById('peer-id').textContent = `Peer ID: ${id}`;
-            addSystemMessage(`Connected! Your Peer ID: ${id}`);
-            addSystemMessage(`Your username: ${myUsername}`);
+        // Start render loop
+        render();
+
+        // Track mouse movement on canvas
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            // Broadcast position to all peers
+            const message = JSON.stringify({
+                type: 'move',
+                id: myId,
+                x: mouseX,
+                y: mouseY
+            });
+            
+            channels.forEach((channel) => {
+                if (channel.readyState === 'open') {
+                    channel.send(message);
+                }
+            });
         });
 
-        peer.on('connection', (conn) => {
-            setupConnection(conn);
-        });
+        // WebRTC Configuration
+        const configuration = {
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' },
+                { urls: 'stun:stun1.l.google.com:19302' }
+            ]
+        };
 
-        peer.on('error', (err) => {
-            console.error('PeerJS error:', err);
-            addSystemMessage(`Error: ${err.type}`);
-        });
+        // Create offer for connection
+        async function createOffer() {
+            try {
+                localConnection = new RTCPeerConnection(configuration);
+                dataChannel = localConnection.createDataChannel('chat');
+                setupDataChannel(dataChannel);
+                
+                localConnection.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        const offerData = {
+                            type: 'offer',
+                            sdp: localConnection.localDescription,
+                            candidate: event.candidate
+                        };
+                        // Display offer for manual sharing
+                        displayConnectionInfo('OFFER', JSON.stringify(offerData));
+                    }
+                };
+                
+                const offer = await localConnection.createOffer();
+                await localConnection.setLocalDescription(offer);
+                
+                addSystemMessage('Offer created! Copy and share with peer.');
+            } catch (error) {
+                console.error('Error creating offer:', error);
+                addSystemMessage('Error creating offer: ' + error.message);
+            }
+        }
 
-        // Setup data connection
-        function setupConnection(conn) {
-            connections.set(conn.peer, conn);
-            updatePeerCount();
+        // Handle incoming offer/answer
+        async function handleConnectionData(data) {
+            try {
+                const connectionData = JSON.parse(data);
+                
+                if (connectionData.type === 'offer') {
+                    // Create answer
+                    remoteConnection = new RTCPeerConnection(configuration);
+                    
+                    remoteConnection.ondatachannel = (event) => {
+                        setupDataChannel(event.channel);
+                    };
+                    
+                    remoteConnection.onicecandidate = (event) => {
+                        if (event.candidate) {
+                            const answerData = {
+                                type: 'answer',
+                                sdp: remoteConnection.localDescription,
+                                candidate: event.candidate
+                            };
+                            displayConnectionInfo('ANSWER', JSON.stringify(answerData));
+                        }
+                    };
+                    
+                    await remoteConnection.setRemoteDescription(connectionData.sdp);
+                    if (connectionData.candidate) {
+                        await remoteConnection.addIceCandidate(connectionData.candidate);
+                    }
+                    
+                    const answer = await remoteConnection.createAnswer();
+                    await remoteConnection.setLocalDescription(answer);
+                    
+                    addSystemMessage('Answer created! Copy and send back to peer.');
+                } else if (connectionData.type === 'answer') {
+                    // Complete connection
+                    await localConnection.setRemoteDescription(connectionData.sdp);
+                    if (connectionData.candidate) {
+                        await localConnection.addIceCandidate(connectionData.candidate);
+                    }
+                    addSystemMessage('Connection established!');
+                }
+            } catch (error) {
+                console.error('Error handling connection:', error);
+                addSystemMessage('Error: ' + error.message);
+            }
+        }
 
-            conn.on('open', () => {
-                addSystemMessage(`Connected to peer: ${conn.peer}`);
+        // Setup data channel
+        function setupDataChannel(channel) {
+            const channelId = Math.random().toString(36).substr(2, 9);
+            channels.set(channelId, channel);
+            
+            channel.onopen = () => {
+                addSystemMessage('Data channel opened!');
+                updatePeerCount();
+                
                 // Send initial data
-                conn.send({
+                channel.send(JSON.stringify({
                     type: 'init',
+                    id: myId,
                     username: myUsername,
                     color: myColor,
                     x: mouseX,
                     y: mouseY
-                });
-            });
-
-            conn.on('data', (data) => {
-                handlePeerData(conn.peer, data);
-            });
-
-            conn.on('close', () => {
-                addSystemMessage(`Peer disconnected: ${conn.peer}`);
-                removeCursor(conn.peer);
-                connections.delete(conn.peer);
+                }));
+            };
+            
+            channel.onmessage = (event) => {
+                handlePeerData(event.data);
+            };
+            
+            channel.onclose = () => {
+                addSystemMessage('Data channel closed');
+                channels.delete(channelId);
                 updatePeerCount();
-            });
-
-            conn.on('error', (err) => {
-                console.error('Connection error:', err);
-            });
+            };
+            
+            channel.onerror = (error) => {
+                console.error('Data channel error:', error);
+            };
         }
 
         // Handle incoming peer data
-        function handlePeerData(peerId, data) {
-            switch (data.type) {
-                case 'init':
-                    createCursor(peerId, data.username, data.color, data.x, data.y);
-                    break;
-                case 'move':
-                    updateCursor(peerId, data.x, data.y);
-                    break;
-                case 'message':
-                    addChatMessage(data.username, data.message, data.color);
-                    break;
+        function handlePeerData(data) {
+            try {
+                const message = JSON.parse(data);
+                
+                switch (message.type) {
+                    case 'init':
+                        cursors.set(message.id, {
+                            username: message.username,
+                            color: message.color,
+                            x: message.x,
+                            y: message.y
+                        });
+                        addSystemMessage(`${message.username} joined!`);
+                        break;
+                    case 'move':
+                        if (cursors.has(message.id)) {
+                            cursors.get(message.id).x = message.x;
+                            cursors.get(message.id).y = message.y;
+                        }
+                        break;
+                    case 'message':
+                        addChatMessage(message.username, message.message, message.color);
+                        break;
+                }
+            } catch (error) {
+                console.error('Error handling peer data:', error);
             }
         }
-
-        // Create cursor for peer
-        function createCursor(peerId, username, color, x, y) {
-            if (cursors.has(peerId)) return;
-
-            const container = new PIXI.Container();
-            
-            // Create cursor triangle
-            const graphics = new PIXI.Graphics();
-            graphics.beginFill(color);
-            graphics.moveTo(0, 0);
-            graphics.lineTo(15, 30);
-            graphics.lineTo(8, 25);
-            graphics.lineTo(0, 0);
-            graphics.endFill();
-            
-            // Add outline
-            graphics.lineStyle(2, 0x000000);
-            graphics.moveTo(0, 0);
-            graphics.lineTo(15, 30);
-            graphics.lineTo(8, 25);
-            graphics.lineTo(0, 0);
-            
-            container.addChild(graphics);
-            container.position.set(x, y);
-            
-            app.stage.addChild(container);
-            
-            // Create label
-            const label = document.createElement('div');
-            label.className = 'cursor-label';
-            label.textContent = username;
-            label.style.color = `#${color.toString(16).padStart(6, '0')}`;
-            document.getElementById('game-container').appendChild(label);
-            
-            cursors.set(peerId, { container, label, username, color, x, y });
-            updateCursorLabel(peerId);
-        }
-
-        // Update cursor position
-        function updateCursor(peerId, x, y) {
-            const cursor = cursors.get(peerId);
-            if (!cursor) return;
-            
-            cursor.x = x;
-            cursor.y = y;
-            cursor.container.position.set(x, y);
-            updateCursorLabel(peerId);
-        }
-
-        // Update cursor label position
-        function updateCursorLabel(peerId) {
-            const cursor = cursors.get(peerId);
-            if (!cursor) return;
-            
-            cursor.label.style.left = (cursor.x + 20) + 'px';
-            cursor.label.style.top = (cursor.y + 5) + 'px';
-        }
-
-        // Remove cursor
-        function removeCursor(peerId) {
-            const cursor = cursors.get(peerId);
-            if (!cursor) return;
-            
-            app.stage.removeChild(cursor.container);
-            cursor.label.remove();
-            cursors.delete(peerId);
-        }
-
-        // Track mouse movement
-        app.view.addEventListener('mousemove', (e) => {
-            mouseX = e.offsetX;
-            mouseY = e.offsetY;
-            
-            // Broadcast position to all peers
-            const message = {
-                type: 'move',
-                x: mouseX,
-                y: mouseY
-            };
-            
-            connections.forEach((conn) => {
-                if (conn.open) {
-                    conn.send(message);
-                }
-            });
-        });
 
         // Chat functionality
         function addSystemMessage(text) {
@@ -335,7 +415,7 @@
             const messagesDiv = document.getElementById('messages');
             const messageEl = document.createElement('div');
             messageEl.className = 'message';
-            messageEl.style.color = `#${color.toString(16).padStart(6, '0')}`;
+            messageEl.style.color = color;
             messageEl.textContent = `[${username}] ${text}`;
             messagesDiv.appendChild(messageEl);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -351,16 +431,17 @@
             addChatMessage(myUsername, text, myColor);
             
             // Broadcast to all peers
-            const message = {
+            const message = JSON.stringify({
                 type: 'message',
+                id: myId,
                 username: myUsername,
                 message: text,
                 color: myColor
-            };
+            });
             
-            connections.forEach((conn) => {
-                if (conn.open) {
-                    conn.send(message);
+            channels.forEach((channel) => {
+                if (channel.readyState === 'open') {
+                    channel.send(message);
                 }
             });
             
@@ -374,39 +455,47 @@
             }
         });
 
-        // Connect to peer
-        document.getElementById('connect-button').addEventListener('click', () => {
-            const targetId = document.getElementById('connect-input').value.trim();
-            if (!targetId) {
-                addSystemMessage('Please enter a Peer ID');
-                return;
-            }
-            
-            if (targetId === myPeerId) {
-                addSystemMessage('Cannot connect to yourself');
-                return;
-            }
-            
-            if (connections.has(targetId)) {
-                addSystemMessage('Already connected to this peer');
-                return;
-            }
-            
-            addSystemMessage(`Connecting to ${targetId}...`);
-            const conn = peer.connect(targetId, { reliable: true });
-            setupConnection(conn);
-            document.getElementById('connect-input').value = '';
-        });
-
         // Update peer count
         function updatePeerCount() {
-            document.getElementById('peer-count').textContent = `Connected: ${connections.size}`;
+            document.getElementById('peer-count').textContent = `Connected: ${channels.size}`;
         }
+
+        // Display connection info
+        function displayConnectionInfo(type, data) {
+            const infoDiv = document.getElementById('connection-info');
+            infoDiv.style.display = 'block';
+            document.getElementById('connection-type').textContent = type;
+            document.getElementById('connection-data').value = data;
+        }
+
+        // UI Buttons
+        document.getElementById('create-offer-btn').addEventListener('click', createOffer);
+        
+        document.getElementById('submit-connection-btn').addEventListener('click', () => {
+            const data = document.getElementById('connect-input').value.trim();
+            if (data) {
+                handleConnectionData(data);
+                document.getElementById('connect-input').value = '';
+            } else {
+                addSystemMessage('Please paste connection data');
+            }
+        });
+        
+        document.getElementById('copy-btn').addEventListener('click', () => {
+            const textarea = document.getElementById('connection-data');
+            textarea.select();
+            document.execCommand('copy');
+            addSystemMessage('Copied to clipboard!');
+        });
 
         // Initial message
         addSystemMessage('Welcome to Cursor Chatroom!');
+        addSystemMessage('Your username: ' + myUsername);
         addSystemMessage('Move your mouse to see your cursor.');
-        addSystemMessage('Connect to other peers by entering their Peer ID.');
+        addSystemMessage('To connect: 1) Click "Create Offer" 2) Share the offer 3) Paste answer back');
+        addSystemMessage('Or paste someone else\'s offer to join their room.');
+        
+        document.getElementById('peer-id').textContent = `Your ID: ${myId}`;
     </script>
 </body>
 </html>
