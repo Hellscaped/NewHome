@@ -178,7 +178,7 @@
         // App state
         const myUsername = randomUsername();
         const myColor = randomColor();
-        const myId = 'user-' + Math.random().toString(36).substr(2, 9);
+        const myId = 'user-' + Math.random().toString(36).substring(2, 11);
         const cursors = new Map();
         const channels = new Map();
         let mouseX = 0;
@@ -338,7 +338,7 @@
 
         // Setup data channel
         function setupDataChannel(channel) {
-            const channelId = Math.random().toString(36).substr(2, 9);
+            const channelId = Math.random().toString(36).substring(2, 11);
             channels.set(channelId, channel);
             
             channel.onopen = () => {
@@ -481,11 +481,28 @@
             }
         });
         
-        document.getElementById('copy-btn').addEventListener('click', () => {
+        document.getElementById('copy-btn').addEventListener('click', async () => {
             const textarea = document.getElementById('connection-data');
-            textarea.select();
-            document.execCommand('copy');
-            addSystemMessage('Copied to clipboard!');
+            const text = textarea.value;
+            
+            try {
+                // Try modern Clipboard API first
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    addSystemMessage('Copied to clipboard!');
+                } else {
+                    // Fallback to older method
+                    textarea.select();
+                    document.execCommand('copy');
+                    addSystemMessage('Copied to clipboard!');
+                }
+            } catch (err) {
+                console.error('Failed to copy:', err);
+                // Try fallback method
+                textarea.select();
+                document.execCommand('copy');
+                addSystemMessage('Copied to clipboard!');
+            }
         });
 
         // Initial message
