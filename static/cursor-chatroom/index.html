@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cursor Chatroom - Multiplayer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        #game-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        #chat-panel {
+            background: rgba(0, 0, 0, 0.8);
+            border-top: 2px solid #00ff00;
+            padding: 10px;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        #messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        
+        .message {
+            margin: 2px 0;
+            padding: 2px 5px;
+        }
+        
+        .message.system {
+            color: #ffff00;
+        }
+        
+        #input-area {
+            display: flex;
+            gap: 5px;
+        }
+        
+        #message-input {
+            flex: 1;
+            background: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        
+        #send-button {
+            background: #00ff00;
+            color: #000;
+            border: none;
+            padding: 8px 20px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+        }
+        
+        #send-button:hover {
+            background: #00cc00;
+        }
+        
+        #info-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border: 1px solid #00ff00;
+            font-size: 12px;
+            z-index: 100;
+        }
+        
+        #info-panel div {
+            margin: 3px 0;
+        }
+        
+        .cursor-label {
+            position: absolute;
+            color: #fff;
+            font-size: 12px;
+            pointer-events: none;
+            text-shadow: 1px 1px 2px #000;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container"></div>
+    <div id="chat-panel">
+        <div id="messages"></div>
+        <div id="input-area">
+            <input type="text" id="message-input" placeholder="Type a message..." maxlength="200">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <div id="info-panel">
+        <div><strong>Cursor Chatroom</strong></div>
+        <div id="peer-id">Peer ID: Connecting...</div>
+        <div id="peer-count">Connected: 0</div>
+        <div style="margin-top: 8px; font-size: 11px;">Share your Peer ID to connect!</div>
+        <div style="margin-top: 5px;">
+            <input type="text" id="connect-input" placeholder="Enter Peer ID" style="width: 150px; padding: 3px; background: #000; color: #00ff00; border: 1px solid #00ff00; font-family: 'Courier New', monospace;">
+            <button id="connect-button" style="padding: 3px 8px; background: #00ff00; color: #000; border: none; cursor: pointer; font-family: 'Courier New', monospace;">Connect</button>
+        </div>
+    </div>
+
+    <script>
+        // Initialize PixiJS
+        const app = new PIXI.Application({
+            width: window.innerWidth,
+            height: window.innerHeight - 200,
+            backgroundColor: 0x1a1a1a,
+            antialias: true
+        });
+        document.getElementById('game-container').appendChild(app.view);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            app.renderer.resize(window.innerWidth, window.innerHeight - 200);
+        });
+
+        // Generate random color for user
+        function randomColor() {
+            const colors = [0xFF6B6B, 0x4ECDC4, 0xFFE66D, 0x95E1D3, 0xF38181, 0xAA96DA, 0xFCBAD3, 0xA8E6CF];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+
+        // Generate random username
+        function randomUsername() {
+            const adjectives = ['Swift', 'Cosmic', 'Quantum', 'Stellar', 'Electric', 'Neon', 'Cyber', 'Digital'];
+            const nouns = ['Fox', 'Wolf', 'Eagle', 'Tiger', 'Hawk', 'Dragon', 'Phoenix', 'Lion'];
+            return adjectives[Math.floor(Math.random() * adjectives.length)] + 
+                   nouns[Math.floor(Math.random() * nouns.length)] + 
+                   Math.floor(Math.random() * 100);
+        }
+
+        // App state
+        const myUsername = randomUsername();
+        const myColor = randomColor();
+        let myPeerId = null;
+        const cursors = new Map();
+        const connections = new Map();
+        let mouseX = 0;
+        let mouseY = 0;
+
+        // Initialize PeerJS
+        const peer = new Peer();
+
+        peer.on('open', (id) => {
+            myPeerId = id;
+            document.getElementById('peer-id').textContent = `Peer ID: ${id}`;
+            addSystemMessage(`Connected! Your Peer ID: ${id}`);
+            addSystemMessage(`Your username: ${myUsername}`);
+        });
+
+        peer.on('connection', (conn) => {
+            setupConnection(conn);
+        });
+
+        peer.on('error', (err) => {
+            console.error('PeerJS error:', err);
+            addSystemMessage(`Error: ${err.type}`);
+        });
+
+        // Setup data connection
+        function setupConnection(conn) {
+            connections.set(conn.peer, conn);
+            updatePeerCount();
+
+            conn.on('open', () => {
+                addSystemMessage(`Connected to peer: ${conn.peer}`);
+                // Send initial data
+                conn.send({
+                    type: 'init',
+                    username: myUsername,
+                    color: myColor,
+                    x: mouseX,
+                    y: mouseY
+                });
+            });
+
+            conn.on('data', (data) => {
+                handlePeerData(conn.peer, data);
+            });
+
+            conn.on('close', () => {
+                addSystemMessage(`Peer disconnected: ${conn.peer}`);
+                removeCursor(conn.peer);
+                connections.delete(conn.peer);
+                updatePeerCount();
+            });
+
+            conn.on('error', (err) => {
+                console.error('Connection error:', err);
+            });
+        }
+
+        // Handle incoming peer data
+        function handlePeerData(peerId, data) {
+            switch (data.type) {
+                case 'init':
+                    createCursor(peerId, data.username, data.color, data.x, data.y);
+                    break;
+                case 'move':
+                    updateCursor(peerId, data.x, data.y);
+                    break;
+                case 'message':
+                    addChatMessage(data.username, data.message, data.color);
+                    break;
+            }
+        }
+
+        // Create cursor for peer
+        function createCursor(peerId, username, color, x, y) {
+            if (cursors.has(peerId)) return;
+
+            const container = new PIXI.Container();
+            
+            // Create cursor triangle
+            const graphics = new PIXI.Graphics();
+            graphics.beginFill(color);
+            graphics.moveTo(0, 0);
+            graphics.lineTo(15, 30);
+            graphics.lineTo(8, 25);
+            graphics.lineTo(0, 0);
+            graphics.endFill();
+            
+            // Add outline
+            graphics.lineStyle(2, 0x000000);
+            graphics.moveTo(0, 0);
+            graphics.lineTo(15, 30);
+            graphics.lineTo(8, 25);
+            graphics.lineTo(0, 0);
+            
+            container.addChild(graphics);
+            container.position.set(x, y);
+            
+            app.stage.addChild(container);
+            
+            // Create label
+            const label = document.createElement('div');
+            label.className = 'cursor-label';
+            label.textContent = username;
+            label.style.color = `#${color.toString(16).padStart(6, '0')}`;
+            document.getElementById('game-container').appendChild(label);
+            
+            cursors.set(peerId, { container, label, username, color, x, y });
+            updateCursorLabel(peerId);
+        }
+
+        // Update cursor position
+        function updateCursor(peerId, x, y) {
+            const cursor = cursors.get(peerId);
+            if (!cursor) return;
+            
+            cursor.x = x;
+            cursor.y = y;
+            cursor.container.position.set(x, y);
+            updateCursorLabel(peerId);
+        }
+
+        // Update cursor label position
+        function updateCursorLabel(peerId) {
+            const cursor = cursors.get(peerId);
+            if (!cursor) return;
+            
+            cursor.label.style.left = (cursor.x + 20) + 'px';
+            cursor.label.style.top = (cursor.y + 5) + 'px';
+        }
+
+        // Remove cursor
+        function removeCursor(peerId) {
+            const cursor = cursors.get(peerId);
+            if (!cursor) return;
+            
+            app.stage.removeChild(cursor.container);
+            cursor.label.remove();
+            cursors.delete(peerId);
+        }
+
+        // Track mouse movement
+        app.view.addEventListener('mousemove', (e) => {
+            mouseX = e.offsetX;
+            mouseY = e.offsetY;
+            
+            // Broadcast position to all peers
+            const message = {
+                type: 'move',
+                x: mouseX,
+                y: mouseY
+            };
+            
+            connections.forEach((conn) => {
+                if (conn.open) {
+                    conn.send(message);
+                }
+            });
+        });
+
+        // Chat functionality
+        function addSystemMessage(text) {
+            const messagesDiv = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message system';
+            messageEl.textContent = `[SYSTEM] ${text}`;
+            messagesDiv.appendChild(messageEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function addChatMessage(username, text, color) {
+            const messagesDiv = document.getElementById('messages');
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            messageEl.style.color = `#${color.toString(16).padStart(6, '0')}`;
+            messageEl.textContent = `[${username}] ${text}`;
+            messagesDiv.appendChild(messageEl);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            // Display own message
+            addChatMessage(myUsername, text, myColor);
+            
+            // Broadcast to all peers
+            const message = {
+                type: 'message',
+                username: myUsername,
+                message: text,
+                color: myColor
+            };
+            
+            connections.forEach((conn) => {
+                if (conn.open) {
+                    conn.send(message);
+                }
+            });
+            
+            input.value = '';
+        }
+
+        document.getElementById('send-button').addEventListener('click', sendMessage);
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Connect to peer
+        document.getElementById('connect-button').addEventListener('click', () => {
+            const targetId = document.getElementById('connect-input').value.trim();
+            if (!targetId) {
+                addSystemMessage('Please enter a Peer ID');
+                return;
+            }
+            
+            if (targetId === myPeerId) {
+                addSystemMessage('Cannot connect to yourself');
+                return;
+            }
+            
+            if (connections.has(targetId)) {
+                addSystemMessage('Already connected to this peer');
+                return;
+            }
+            
+            addSystemMessage(`Connecting to ${targetId}...`);
+            const conn = peer.connect(targetId, { reliable: true });
+            setupConnection(conn);
+            document.getElementById('connect-input').value = '';
+        });
+
+        // Update peer count
+        function updatePeerCount() {
+            document.getElementById('peer-count').textContent = `Connected: ${connections.size}`;
+        }
+
+        // Initial message
+        addSystemMessage('Welcome to Cursor Chatroom!');
+        addSystemMessage('Move your mouse to see your cursor.');
+        addSystemMessage('Connect to other peers by entering their Peer ID.');
+    </script>
+</body>
+</html>
