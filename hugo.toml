@@ -67,4 +67,13 @@ enableGitInfo = true
           identifier = "games"
           name = "Games"
           url = "/games"
-# 
+
+[outputs]
+home = ['html']
+section = ['html']
+taxonomy = ['html']
+term = ['html']
+
+[outputFormats.RSS]
+mediaType = "application/rss+xml"
+baseName = "rss"
