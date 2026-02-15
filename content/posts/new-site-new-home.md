@@ -1,12 +1,14 @@
----
-title: "New Site, New Home"
-date: 2026-01-24T17:09:20-06:00
-draft: false
-toc: false
-images:
-tags:
-  - welcome
----
++++
+title = "New Site, New Home"
+date = "2026-01-24T17:09:20-06:00"
+author = 'Riley "Hellscaped" Thrailkill'
+tags = ["welcome"]
+keywords = ["hugo"]
+description = "welcome to the newer site."
+showFullContent = false
+readingTime = false
+hideComments = false
++++
 
 So I decided to do away with the old site that was using SolidJS in favor of a more traditional static site generator-- Hugo.
 
