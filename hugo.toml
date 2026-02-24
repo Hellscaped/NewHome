@@ -1,4 +1,4 @@
-baseURL = 'https://hellscaped.dev/'
+baseURL = 'https://ORIGIN_PLACEHOLDER/'
 languageCode = 'en-us'
 title = "Hey, I'm Hellscaped"
 theme = 'terminal'
