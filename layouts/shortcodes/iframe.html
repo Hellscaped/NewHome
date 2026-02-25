@@ -17,6 +17,7 @@
   }
 </style>
 
+<button onclick="document.getElementById('frame').requestFullscreen()">Fullscreen</button>
 <div class="iframe-container">
-  <iframe class="responsive-iframe" src='{{ .Get "url" }}'></iframe>
+  <iframe class="responsive-iframe" src='{{ .Get "url" }}' id="frame"></iframe>
 </div>
