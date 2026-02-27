@@ -5,7 +5,7 @@ title = 'Debris Dawn'
 summary = 'In this hex based rogue like you travel the wasteland looting and pillaging. Upgrade your vehicles and get better weapons, but make sure you don't run out of fuel. The wasteland can be harsh on those stranded without hope.'
 +++
 
-In this hex based rogue like you travel the wasteland looting and pillaging. Upgrade your vehicles and get better weapons, but make sure you don't run out of fuel. The wasteland can be harsh on those stranded without hope.
+In this hex based rogue like you travel the wasteland looting and pillaging. Upgrade your vehicles and get better weapons, but make sure you don\'t run out of fuel. The wasteland can be harsh on those stranded without hope.
 
 Make sure you eat. You will die without food. Make sure you have fuel, you will die without fuel. Make sure you have bullets you will die without bullets.
 
