@@ -2,7 +2,7 @@
 date = '2026-02-27T16:49:29Z'
 draft = false
 title = 'Debris Dawn'
-summary = 'In this hex based rogue like you travel the wasteland looting and pillaging. Upgrade your vehicles and get better weapons, but make sure you don't run out of fuel. The wasteland can be harsh on those stranded without hope.'
+summary = "In this hex based rogue like you travel the wasteland looting and pillaging. Upgrade your vehicles and get better weapons, but make sure you don't run out of fuel. The wasteland can be harsh on those stranded without hope."
 +++
 
 In this hex based rogue like you travel the wasteland looting and pillaging. Upgrade your vehicles and get better weapons, but make sure you don\'t run out of fuel. The wasteland can be harsh on those stranded without hope.
