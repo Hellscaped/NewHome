@@ -1,0 +1,18 @@
+backend:
+  name: github
+  repo: Hellscaped/NewHome
+  branch: apollyon
+  base_url: https://hellscaped.touhan.cn
+media_folder: "static/images/uploads"
+public_folder: "/images/uploads"
+
+collections:
+  - name: "posts"
+    label: "Blog"
+    folder: "content/posts"
+    create: true
+      - { label: "Layout", name: "layout", widget: "hidden", default: "blog" }
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "Publish Date", name: "date", widget: "datetime" }
+      - { label: "Featured Image", name: "thumbnail", widget: "image" }
+      - { label: "Body", name: "body", widget: "markdown" }
