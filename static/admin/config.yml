@@ -13,6 +13,7 @@ collections:
     create: true
     fields:
       - { label: "Layout", name: "layout", widget: "hidden", default: "blog" }
+      - { label: "Author", name: "author", widget: "string", default: 'Riley "Hellscaped" Thrailkill' }
       - { label: "Title", name: "title", widget: "string" }
       - { label: "Publish Date", name: "date", widget: "datetime" }
       - { label: "Body", name: "body", widget: "markdown" }
