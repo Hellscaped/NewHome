@@ -1,5 +1,6 @@
 ---
 layout: blog
+author: Riley "Hellscaped" Thrailkill
 title: Setting up DecapCMS
 date: 2026-03-04T12:34:00.000-06:00
 ---
