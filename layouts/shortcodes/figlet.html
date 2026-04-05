@@ -1,0 +1,22 @@
+<pre id="figlet-{{ .Ordinal }}" style="display: inline-block;">loadin ya' nerd</p>
+<script type="module">
+    import figlet from 'https://cdn.jsdelivr.net/npm/figlet@1.11.0/+esm'
+    figlet.defaults({ fontPath: "/fonts" });
+    figlet.text(
+        '{{ .Get "text" }}',
+        {
+            font: '{{ .Get "font" }}',
+            horizontalLayout: "default",
+            verticalLayout: "default",
+            width: 80,
+            whitespaceBreak: true,
+        },
+        function (err, data) {
+            if (err) {
+                console.dir(err);
+                return;
+            }
+            document.getElementById("figlet-{{ .Ordinal }}").innerText = data;
+        }
+    );
+</script>

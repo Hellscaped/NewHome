@@ -6,6 +6,8 @@ title = "Hey, I'm Hellscaped"
 
 Just a casual programmer.
 
-I know Python 3.x, Web Trio (HTML, CSS, JS), Java and C#.
+I know Python 3.x, The Web Trio (HTML, CSS, JS), Java and C#.
 
 I started in Python at 7, and look where that's gotten me. 
+
+{{< figlet text="Blog" font="Alligator2" >}}
