@@ -49,3 +49,9 @@ If you absolutely need to contact me, this alias will remain active for about a 
 I will treat any future conversations as a conversation with my real identity, however. And I'd prefer if all conversations with my real identity were to be purely mechanical.
 
 Don't message me if you don't have a reason. I won't respond.
+
+Quick amendment after my last commit that I forgot to add:\
+I'll be staying in the DiamondFire discord for 24 more hours. After, I'll leave as if I were never there.
+
+
+Farewell, DiamondFire. I'm not coming back.
