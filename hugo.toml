@@ -43,7 +43,7 @@ enableGitInfo = true
     [languages.en.params]
       subtitle = "I do things"
       owner = "Hellscaped"
-      keywords = "home, blog, games"
+      keywords = "home, blog"
       menuMore = "Show more"
       readMore = "Read more"
       readOtherPosts = "Read other posts"
@@ -63,10 +63,6 @@ enableGitInfo = true
           identifier = "blog"
           name = "Blog"
           url = "/posts"
-        [[languages.en.menu.main]]
-          identifier = "games"
-          name = "Games"
-          url = "/games"
 
 [outputs]
 home = ['html']
