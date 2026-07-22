@@ -1,6 +1,6 @@
 baseURL = 'https://ORIGIN_PLACEHOLDER/'
 languageCode = 'en-us'
-title = "Hey, I'm Hellscaped"
+title = "// maltedchoco"
 theme = 'terminal'
 pagination.pagerSize = 5
 enableGitInfo = true
@@ -38,11 +38,11 @@ enableGitInfo = true
 [languages]
   [languages.en]
     languageName = "English"
-    title = "Hey, I'm Hellscaped"
+    title = "// maltedchoco"
     copyright = "Riley Thrailkill"
     [languages.en.params]
       subtitle = "I do things"
-      owner = "Hellscaped"
+      owner = "MaltedChoco"
       keywords = "home, blog"
       menuMore = "Show more"
       readMore = "Read more"
@@ -55,7 +55,7 @@ enableGitInfo = true
       words = "words"
 
       [languages.en.params.logo]
-        logoText = "Hellscaped"
+        logoText = "// maltedchoco"
         logoHomeLink = "/"
 
       [languages.en.menu]
